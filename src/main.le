@@ -1,5 +1,16 @@
 use std/prelude;
+use src/utf8;
+use src/lexer;
 
-fn main() {
-    $println("こんにちは、世界！");
+fn main(string[] args) {
+    program := args.remove(0);
+    $assert(args.len() == 1, "Usage: {} file.igo\n".format(program));
+
+    lexer := Lexer::new(args[0]);
+    tokens := [(string, string);];
+
+    while current := lexer.next_token() {
+        tokens.push(current);
+        $println(*current);
+    }
 }
