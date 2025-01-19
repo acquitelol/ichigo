@@ -1,6 +1,5 @@
 use std/prelude;
-use src/utf8;
-use src/lexer;
+use lexer;
 
 fn main(string[] args) {
     program := args.remove(0);
