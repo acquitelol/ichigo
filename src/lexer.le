@@ -42,7 +42,7 @@ fn Lexer::advance(Lexer *self) {
 }
 
 fn Lexer::skip_whitespace(Lexer *self) {
-    while !self.is_eof() && (char::is_whitespace(self.current_char().inner)))
+    while !self.is_eof() && ((char)self.current_char().inner).is_whitespace()
         || self.current_char().encode() == "　" {
         self.advance();
     }
@@ -50,20 +50,20 @@ fn Lexer::skip_whitespace(Lexer *self) {
 
 fn Lexer::consume_identifier(Lexer *self) {
     start_pos := self.position;
-    identifier := [rune *;];
+    res := [rune *;];
 
     while !self.is_eof() {
         current_char := self.current_char();
 
         if current_char.is_letter() || current_char.inner == '_' {
-            identifier.push(current_char);
+            res.push(current_char);
             self.advance();
         } else {
             break;
         }
     }
 
-    return identifier.map<string>(rune::encode).join("");
+    return res.utf8_encode();
 }
 
 fn Lexer::consume_string_literal(Lexer *self) {
@@ -82,19 +82,19 @@ fn Lexer::consume_string_literal(Lexer *self) {
         }
     }
 
-    return res.map<string>(rune::encode).join("");
+    return res.utf8_encode();
 }
 
 fn Lexer::consume_number_literal(Lexer *self) -> string {
     start_pos := self.position;
-    digits := [rune *;];
+    res := [rune *;];
 
     while !self.is_eof() && self.current_char().is_number() {
-        digits.push(self.current_char());
+        res.push(self.current_char());
         self.advance();
     }
 
-    return digits.map<string>(rune::encode).join("");
+    return res.utf8_encode();
 }
 
 fn Lexer::next_token(Lexer *self) -> (string, string) {

@@ -8,63 +8,66 @@ fn rune::__fmt__(rune self, i32 nesting) {
     return self.encode();
 }
 
-fn char::unicode_length(char byte) {
-    if (byte & 0b10000000) == 0 {
+fn char::unicode_length(char self) {
+    if (self & 0b10000000) == 0 {
         return 1;
-    } else { if (byte & 0b11100000) == 0b11000000 {
+    } else { if (self & 0b11100000) == 0b11000000 {
         return 2;
-    } else { if (byte & 0b11110000) == 0b11100000 {
+    } else { if (self & 0b11110000) == 0b11100000 {
         return 3;
-    } else { if (byte & 0b11111000) == 0b11110000 {
+    } else { if (self & 0b11111000) == 0b11110000 {
         return 4;
     }}}}
 }
 
-fn string::utf8_decode(string input) -> rune * {
-    first_byte := input[0];
-    length := first_byte.unicode_length();
-    self := #alloc(rune);
+fn string::utf8_decode(string self) -> rune * {
+    length := self[0].unicode_length();
+    res := #alloc(rune);
 
     if length == 1 {
-        self.inner = first_byte & 0b01111111;
+        res.inner = self[0] & 0b01111111;
     } else { if length == 2 {
-        self.inner = ((first_byte & 0b00011111) << 6) |
-                     (input[1] & 0b00111111);
+        res.inner = ((self[0] & 0b00011111) << 6) |
+                     (self[1] & 0b00111111);
     } else { if length == 3 {
-        self.inner = ((first_byte & 0b00001111) << 12) |
-                     ((input[1] & 0b00111111) << 6) |
-                     (input[2] & 0b00111111);
+        res.inner = ((self[0] & 0b00001111) << 12) |
+                     ((self[1] & 0b00111111) << 6) |
+                     (self[2] & 0b00111111);
     } else { if length == 4 {
-        self.inner = ((first_byte & 0b00000111) << 18) |
-                     ((input[1] & 0b00111111) << 12) |
-                     ((input[2] & 0b00111111) << 6) |
-                     (input[3] & 0b00111111);
+        res.inner = ((self[0] & 0b00000111) << 18) |
+                     ((self[1] & 0b00111111) << 12) |
+                     ((self[2] & 0b00111111) << 6) |
+                     (self[3] & 0b00111111);
     }}}}
 
-    return self;
+    return res;
 }
 
 fn rune::encode(rune *self) -> string {
-    result := "";
-    code_point := self.inner;
+    c := self.inner;
+    res := "";
 
-    if code_point <= 0x7F {
-        result.push((char)code_point);
-    } else { if code_point <= 0x7FF {
-        result.push(0xC0 | (code_point >> 6) & 0x1F);
-        result.push(0x80 | (code_point & 0x3F));
-    } else { if code_point <= 0xFFFF {
-        result.push(0xE0 | (code_point >> 12) & 0x0F);
-        result.push(0x80 | (code_point >> 6) & 0x3F);
-        result.push(0x80 | (code_point & 0x3F));
-    } else { if code_point <= 0x10FFFF {
-        result.push(0xF0 | ((code_point >> 18) & 0x07));
-        result.push(0x80 | ((code_point >> 12) & 0x3F));
-        result.push(0x80 | ((code_point >> 6) & 0x3F));
-        result.push(0x80 | (code_point & 0x3F));
+    if c <= 0x7F {
+        res.push(c);
+    } else { if c <= 0x7FF {
+        res.push(0xC0 | (c >> 6) & 0x1F);
+        res.push(0x80 | (c & 0x3F));
+    } else { if c <= 0xFFFF {
+        res.push(0xE0 | (c >> 12) & 0x0F);
+        res.push(0x80 | (c >> 6) & 0x3F);
+        res.push(0x80 | (c & 0x3F));
+    } else { if c <= 0x10FFFF {
+        res.push(0xF0 | ((c >> 18) & 0x07));
+        res.push(0x80 | ((c >> 12) & 0x3F));
+        res.push(0x80 | ((c >> 6) & 0x3F));
+        res.push(0x80 | (c & 0x3F));
     }}}}
 
-    return result;
+    return res;
+}
+
+fn Array::utf8_encode(rune *[] self) {
+    return self.map<string>(rune::encode).join("");
 }
 
 fn rune::is_letter(rune *self) {
@@ -72,9 +75,9 @@ fn rune::is_letter(rune *self) {
 
     return (c >= 0x0041 && c <= 0x005A) ||  // A-Z
            (c >= 0x0061 && c <= 0x007A) ||  // a-z
-           (c >= 0x4E00 && c <= 0x9FFF) ||  // Kanji
-           (c >= 0x3040 && c <= 0x309F) ||  // Hiragana
-           (c >= 0x30A0 && c <= 0x30FF);    // Katakana
+           (c >= 0x4E00 && c <= 0x9FFF) ||  // kanji
+           (c >= 0x3040 && c <= 0x309F) ||  // hiragana
+           (c >= 0x30A0 && c <= 0x30FF);    // katakana
 }
 
 fn rune::is_number(rune *self) -> bool {
