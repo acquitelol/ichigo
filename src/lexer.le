@@ -42,7 +42,7 @@ fn Lexer::advance(Lexer *self) {
 }
 
 fn Lexer::skip_whitespace(Lexer *self) {
-    while !self.is_eof() && ((char)self.current_char().inner).is_whitespace()
+    while !self.is_eof() && (char::is_whitespace(self.current_char().inner)))
         || self.current_char().encode() == "　" {
         self.advance();
     }
@@ -89,26 +89,9 @@ fn Lexer::consume_number_literal(Lexer *self) -> string {
     start_pos := self.position;
     digits := [rune *;];
 
-    current := self.current_char().encode();
-    if current == "+" || current == "＋" || current == "-" || current = "ー" {
-        digits.push(self.current_char());
-        self.advance();
-    }
-
     while !self.is_eof() && self.current_char().is_number() {
         digits.push(self.current_char());
         self.advance();
-    }
-
-    current := self.current_char();
-    if current.encode() == "." || current.encode() == "。" {
-        digits.push(current);
-        self.advance();
-
-        while !self.is_eof() && self.current_char().is_number() {
-            digits.push(self.current_char());
-            self.advance();
-        }
     }
 
     return digits.map<string>(rune::encode).join("");
