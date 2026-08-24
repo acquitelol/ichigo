@@ -1,0 +1,369 @@
+use std/prelude;
+use ../lib/encoding;
+
+use lib/argument;
+use lib/astnode;
+use lib/primitives;
+
+global pub;
+
+struct Parser {
+    Token[] tokens,
+    Primitive[] tree,
+    i32 position,
+}
+
+fn Parser::new(Token[] tokens) {
+    return Parser { tokens, tree = [], position = 0 };
+}
+
+external fn Parser::parse_expr(Parser *self) -> AstNode;
+external fn Parser::parse_body(Parser *self) -> AstNode[];
+
+fn Parser::current_token(Parser *self) -> Token {
+    return self.tokens[self.position];
+}
+
+fn Parser::is_eof(Parser *self) {
+    return self.position >= self.tokens.len() - 1;
+}
+
+fn Parser::next_token(Parser *self) -> Option<Token> {
+    if self.is_eof() {
+        return None();
+    }
+
+    return Some(self.tokens[self.position + 1]);
+}
+
+fn Parser::match_kind(Parser *self, TokenKind kind) {
+    return self.current_token().kind == kind;
+}
+
+fn Parser::match_value(Parser *self, TokenValue value) {
+    return self.current_token().value == value;
+}
+
+fn Parser::match_token(Parser *self, Token token) {
+    return self.current_token() == token;
+}
+
+fn Parser::expect_kind(Parser *self, TokenKind kind) {
+    if !self.match_kind(kind) {
+        $panic("{}が欲しかったのに、{}を手に入れたわ", kind, self.current_token().kind);
+    }
+}
+
+fn Parser::expect_value(Parser *self, TokenValue value) {
+    if !self.match_value(value) {
+        $panic("{}が欲しかったのに、{}を手に入れたわ", value, self.current_token().value);
+    }
+}
+
+fn Parser::expect_token(Parser *self, Token token) {
+    if !self.match_token(token) {
+        $panic("{}が欲しかったのに、{}を手に入れたわ", token, self.current_token());
+    }
+}
+
+fn Parser::advance(Parser *self) {
+    if !self.is_eof() {
+        self.position += 1;
+    }
+}
+
+fn Parser::expect_seperator(Parser *self, string sep) {
+    self.advance();
+
+    if !self.is_eof() && !self.match_value(TokenValue::String(sep)) {
+        $panic("「{}」が欲しかったのに、「{}」を手に入れたわ", sep, self.current_token().value);
+    }
+
+    self.advance();
+}
+
+fn Parser::parse_funcall(Parser *self) {
+    name := self.current_token().value.as_string;
+
+    self.advance();
+    self.expect_value(TokenValue::String("（"));
+    self.advance();
+
+    args := []AstNode;
+
+    while !self.match_value(TokenValue::String("）")) && !self.is_eof() {
+        tokens := []Token;
+        nesting := 0;
+
+        while true {
+            if self.match_value(TokenValue::String("（")) {
+                nesting += 1;
+            }
+
+            tokens.push(self.current_token());
+            self.advance();
+
+            if self.match_value(TokenValue::String("、")) {
+                if nesting > 0 {
+                    tokens.push(self.current_token());
+                    self.advance();
+                    continue;
+                } else {
+                    self.advance();
+                    break;
+                }
+            }
+
+            if self.match_value(TokenValue::String("）")) {
+                if nesting > 0 && !self.is_eof() {
+                    nesting -= 1;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        args.push(Parser::new(tokens).parse_expr());
+    }
+
+    self.expect_value(TokenValue::String("）"));
+    return AstNode::FunctionCall(name, args);
+}
+
+fn Parser::parse_declaration(Parser *self, bool assignment) {
+    type := None<string>();
+
+    if !assignment {
+        type = Some(self.current_token().value.as_string);
+        self.advance();
+    }
+
+    self.expect_kind(TokenKind::Identifier);
+    name := self.current_token().value.as_string;
+    self.advance();
+
+    self.expect_value(TokenValue::String("＝"));
+    self.advance();
+
+    value := self.parse_expr();
+    return AstNode::Declare(type, name, value);
+}
+
+fn Parser::parse_primary(Parser *self) -> AstNode {
+    while self.match_value(TokenValue::String("。")) {
+        self.advance();
+    }
+
+    token := self.current_token();
+
+    if token.kind == TokenKind::Identifier {
+        if self.match_value(TokenValue::String("返す")) {
+            self.advance();
+            res := self.parse_expr();
+            return AstNode::Return(res);
+        }
+
+        if self.current_token().value.is_type() {
+            res := self.parse_declaration(false);
+            return res;
+        }
+
+        if _, next := self.next_token() {
+            if next.value == TokenValue::String("（") {
+                res := self.parse_funcall();
+                //self.expect_seperator("。");
+                return res;
+            } else if next.value == TokenValue::String("＝") {
+                res := self.parse_declaration(true);
+                return res;
+            }
+        }
+
+        res := AstNode::from_token(token);
+        //self.expect_seperator("。");
+        return res;
+    } else if token.kind == TokenKind::String {
+        res := AstNode::from_token(token);
+        //self.expect_seperator("。");
+        return res;
+    } else if token.kind == TokenKind::Number {
+        res := AstNode::from_token(token);
+        //self.expect_seperator("。");
+        return res;
+    } else if token.kind == TokenKind::Comment {
+        self.advance();
+        return self.parse_primary();
+    } else {
+        $panic("思ったのと違った：{}", token);
+    }
+}
+
+fn Parser::parse_expr(Parser *self) -> AstNode {
+    res := Deque::new<Result<AstNode, Token>>(); // using Result as a Sum type
+    ops := Stack::new<Token>();
+
+    for ;; {
+        token := self.current_token();
+
+        if token.kind == TokenKind::Operator {
+            if ops.is_empty()
+                || ops.peek().unwrap().precedence() < token.precedence() {
+                ops.push(token);
+            } else {
+                while !ops.is_empty()
+                    && ops.peek().unwrap().precedence() >= token.precedence() {
+                    res.push_back(Err<AstNode>(ops.pop().unwrap()));
+                }
+
+                ops.push(token);
+            }
+        } else {
+            res.push_back(Ok<AstNode, Token>(self.parse_primary()));
+        }
+
+        if self.is_eof() || self.next_token().is_some_and(
+            fn(x) x.value == TokenValue::String("。")
+                || x.value == TokenValue::String("『")
+        ) {
+            break;
+        }
+
+        self.advance();
+    }
+
+    while !ops.is_empty() {
+        res.push_back(Err<AstNode>(ops.pop().unwrap()));
+    }
+
+    out := Stack::new<AstNode>();
+
+    while !res.is_empty() {
+        if _, lit, op := res.pop_front().unwrap() {
+            out.push(lit);
+        } else {
+            rhs := out.pop().expect("間違った後置記法");
+            lhs := out.pop().expect("間違った後置記法");
+            out.push(AstNode::BinOp(lhs, rhs, op));
+        }
+    }
+
+    return out.pop().unwrap();
+}
+
+fn Parser::parse_if(Parser *self) {
+    self.expect_value(TokenValue::String("もし"));
+    self.advance();
+
+    cond := self.parse_expr();
+    self.advance();
+
+    self.expect_value(TokenValue::String("『"));
+    self.advance();
+
+    body := self.parse_body();
+
+    self.expect_value(TokenValue::String("』"));
+    self.advance();
+
+    return AstNode::IfStmt(cond, body);
+}
+
+fn Parser::parse_while(Parser *self) {
+    self.expect_value(TokenValue::String("間"));
+    self.advance();
+
+    cond := self.parse_expr();
+    self.advance();
+
+    self.expect_value(TokenValue::String("『"));
+    self.advance();
+
+    body := self.parse_body();
+
+    self.expect_value(TokenValue::String("』"));
+    self.advance();
+
+    return AstNode::WhileStmt(cond, body);
+}
+
+fn Parser::parse_body(Parser *self) {
+    statements := []AstNode;
+
+    while !self.match_value(TokenValue::String("』")) {
+        if self.match_value(TokenValue::String("もし")) {
+            statements.push(self.parse_if());
+        } else if self.match_value(TokenValue::String("間")) {
+            statements.push(self.parse_while());
+        } else if self.match_kind(TokenKind::Comment) {
+            self.advance();
+            continue;
+        } else {
+            expr := self.parse_expr();
+            self.expect_seperator("。");
+            statements.push(expr);
+        }
+    }
+
+    return statements;
+}
+
+fn Parser::parse_function(Parser *self) {
+    self.advance();
+
+    self.expect_kind(TokenKind::Identifier);
+    name := self.current_token().value.as_string;
+    self.advance();
+
+    self.expect_value(TokenValue::String("（"));
+    self.advance();
+
+    args := []Argument;
+
+    while !self.match_value(TokenValue::String("）")) {
+        self.expect_kind(TokenKind::Identifier);
+        type := self.current_token().value.as_string;
+        self.advance();
+
+        self.expect_kind(TokenKind::Identifier);
+        name := self.current_token().value.as_string;
+        self.advance();
+
+        if self.match_value(TokenValue::String("、")) {
+            self.advance();
+        }
+
+        args.push(Argument::new(name, type));
+    }
+
+    self.expect_value(TokenValue::String("）"));
+    self.advance();
+
+    self.expect_value(TokenValue::String("『"));
+    self.advance();
+
+    body := self.parse_body();
+    self.expect_value(TokenValue::String("』"));
+    self.advance();
+
+    return Primitive::Function(name, args, body);
+}
+
+fn Parser::parse(Parser *self) {
+    while !self.is_eof() {
+        token := self.current_token();
+
+        if token.kind == TokenKind::Identifier && token.value.as_string == "関数" {
+            self.tree.push(self.parse_function());
+            continue;
+        }
+
+        if token.kind == TokenKind::Comment {
+            self.advance();
+            continue;
+        }
+
+        $panic("思いがけない：{}", token);
+    }
+
+    return self.tree;
+}

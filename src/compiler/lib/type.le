@@ -1,0 +1,32 @@
+use std/prelude;
+global pub;
+
+enum QbeType {
+    Int = "整数",
+    Long = "文字列",
+    Byte = "バイト"
+}
+
+let __type_fmts = $map(#[
+    $(QbeType::Int, "l"),
+    $(QbeType::Long, "l"),
+    $(QbeType::Byte, "b")
+]);
+
+let __type_sizes = $map(#[
+    $(QbeType::Int, 8),
+    $(QbeType::Long, 8),
+    $(QbeType::Byte, 1)
+]);
+
+let QbeType::display = fn(QbeType self) -> string self;
+let QbeType::from = fn(string ty) -> QbeType ty;
+let QbeType::size = fn(QbeType self) __type_sizes[self];
+
+fn QbeType::__hash__(QbeType self, u64 capacity) {
+    return self.display().__hash__(capacity);
+}
+
+fn QbeType::__fmt__(QbeType self, i32 nesting) {
+    return __type_fmts[self];
+}

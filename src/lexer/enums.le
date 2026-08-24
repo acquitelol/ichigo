@@ -1,0 +1,166 @@
+use ../compiler/lib/type;
+use ../lib/utf8;
+global pub;
+
+enum TokenKind {
+    Identifier,
+    String,
+    Comment,
+    Number,
+    Operator,
+    Punctuation
+}
+
+enum ValueKind {
+    String,
+    Number,
+    Operator
+}
+
+enum Operator {
+    Add = "add",
+    Sub = "sub",
+    Mul = "mul",
+    Div = "div",
+    Rem = "rem",
+    Eq  = "eq",
+    Ne  = "ne",
+    Lt  = "slt",
+    Gt  = "sgt"
+}
+
+fn Operator::__fmt__(Operator self, u64 nesting) -> string {
+    return self;
+}
+
+fn Operator::is_comparison(Operator self) {
+    return self == Operator::Eq
+        || self == Operator::Ne
+        || self == Operator::Lt
+        || self == Operator::Gt;
+}
+
+struct TokenValue {
+    ValueKind tag,
+    @unused string as_string,
+    @unused i64 as_number,
+    @unused Operator as_op
+}
+
+fn rune::to_operator(rune self) -> Option<Operator> {
+    val := self.encode();
+
+    if val == "+" || val == "＋" { return Some(Operator::Add); }
+    if val == "-" || val == "ー" { return Some(Operator::Sub); }
+    if val == "*" || val == "＊" { return Some(Operator::Mul); }
+    if val == "/" || val == "／" { return Some(Operator::Div); }
+    if val == "%" || val == "％" { return Some(Operator::Rem); }
+    if val == ":" || val == "：" { return Some(Operator::Eq); }
+    if val == "!" || val == "！" { return Some(Operator::Ne); }
+    if val == "<" || val == "＜" { return Some(Operator::Lt); }
+    if val == ">" || val == "＞" { return Some(Operator::Gt); }
+
+    return None();
+}
+
+fn TokenValue::__fmt__(TokenValue self, i32 nesting) {
+    value := "";
+
+    if self.tag == ValueKind::String {
+        value = self.as_string;
+    } else if self.tag == ValueKind::Number {
+        value = "{}".format(self.as_number);
+    } else if self.tag == ValueKind::Operator {
+        value = "{}".format(self.as_op);
+    } else {
+        $die();
+    }
+
+    return "{}({})".format(self.tag, value);
+}
+
+fn TokenValue::__equals__(TokenValue self, TokenValue other) {
+    if self.tag != other.tag {
+        return false;
+    }
+
+    if self.tag == ValueKind::String && self.as_string == other.as_string {
+        return true;
+    }
+
+    if self.tag == ValueKind::Number && self.as_number == other.as_number {
+        return true;
+    }
+
+    if self.tag == ValueKind::Operator && self.as_op == other.as_op {
+        return true;
+    }
+
+    return false;
+}
+
+fn Token::precedence(Token self) {
+    $assert(self.kind == TokenKind::Operator);
+    op := self.value.as_op;
+
+    if op == Operator::Mul
+        || op == Operator::Div
+        || op == Operator::Rem { return 4; }
+
+    if op == Operator::Add
+        || op == Operator::Sub { return 3; }
+
+    if op == Operator::Lt
+        || op == Operator::Gt { return 2; }
+
+    if op == Operator::Eq
+        || op == Operator::Ne { return 1; }
+}
+
+fn TokenValue::String(string value) {
+    return TokenValue {
+        tag = ValueKind::String,
+        as_string = value
+    };
+}
+
+fn TokenValue::Number(i64 value) {
+    return TokenValue {
+        tag = ValueKind::Number,
+        as_number = value
+    };
+}
+
+fn TokenValue::Operator(Operator value) {
+    return TokenValue {
+        tag = ValueKind::Operator,
+        as_op = value
+    };
+}
+
+fn TokenValue::is_type(TokenValue self) {
+    if self.tag != ValueKind::String {
+        return false;
+    }
+
+    // TODO: タイプが追加されたらこれを編集する
+    res := self.as_string;
+
+    return res == QbeType::Int.display()
+        || res == QbeType::Long.display()
+        || res == QbeType::Byte.display();
+}
+
+struct Token {
+    TokenKind kind,
+    TokenValue value,
+}
+
+fn Token::__equals__(Token self, Token other) {
+    return (self.kind == other.kind)
+        && (self.value == other.value);
+}
+
+fn Token::new(TokenKind kind, TokenValue value) {
+    return Token { kind, value };
+}

@@ -1,0 +1,52 @@
+global pub;
+
+enum QbeDataKind {
+    String,
+    Const
+}
+
+struct QbeDataItemString {
+    string inner,
+}
+
+struct QbeDataItemConst {
+    i64 inner,
+}
+
+struct QbeDataItem {
+    QbeDataKind tag,
+    @unused QbeDataItemString as_string,
+    @unused QbeDataItemConst as_const,
+}
+
+fn QbeDataItemString::__fmt__(QbeDataItemString self, i32 nesting) {
+    return self.inner;
+}
+
+fn QbeDataItemConst::__fmt__(QbeDataItemConst self, i32 nesting) {
+    return "{}".format(self.inner);
+}
+
+fn QbeDataItem::__fmt__(QbeDataItem self, i32 nesting) {
+    if self.tag == QbeDataKind::String {
+        return "\"{}\"".format(self.as_string);
+    }
+
+    if self.tag == QbeDataKind::Const {
+        return "{}".format(self.as_const);
+    }
+}
+
+fn QbeDataItem::String(string inner) {
+    return QbeDataItem {
+        tag = QbeDataKind::String,
+        as_string = QbeDataItemString { inner }
+    };
+}
+
+fn QbeDataItem::Const(i64 inner) {
+    return QbeDataItem {
+        tag = QbeDataKind::Const,
+        as_const = QbeDataItemConst { inner }
+    };
+}

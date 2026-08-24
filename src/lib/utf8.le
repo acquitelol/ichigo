@@ -1,0 +1,104 @@
+use std/prelude;
+global pub;
+
+// なんちゃって型エイリアス
+enum rune @repr(i32) @nofmt {}
+external fn rune::encode(rune self) @alias(rune::__fmt__) -> string;
+external fn i32::__hash__(rune self, u64 capacity) @alias(rune::__hash__) -> u64;
+
+let jp_digits: rune[] = [0x3007, 0x4E00, 0x4E8C, 0x4E09, 0x56DB, 0x4E94, 0x516D, 0x4E03, 0x516B, 0x4E5D];
+let jp_units: HashMap<rune, i32>* = $map(#[$(0x5341, 1e1), $(0x767E, 1e2), $(0x5343, 1e3), $(0x4E07, 1e4)]);
+
+fn char::utf8_len(char self) {
+    if (self & 0b10000000) == 0 {
+        return 1;
+    } else if (self & 0b11100000) == 0b11000000 {
+        return 2;
+    } else if (self & 0b11110000) == 0b11100000 {
+        return 3;
+    } else if (self & 0b11111000) == 0b11110000 {
+        return 4;
+    }
+}
+
+fn string::utf8_decode(string self) -> rune {
+    length := self[0].utf8_len();
+
+    if length == 1 {
+        return #cast(rune, self[0] & 0b01111111);
+    } else if length == 2 {
+        return #cast(rune, ((self[0] & 0b00011111) << 6) |
+                            (self[1] & 0b00111111));
+    } else if length == 3 {
+        return #cast(rune, ((self[0] & 0b00001111) << 12) |
+                            ((self[1] & 0b00111111) << 6) |
+                            (self[2] & 0b00111111);
+    } else if length == 4 {
+        return #cast(rune, ((self[0] & 0b00000111) << 18) |
+                            ((self[1] & 0b00111111) << 12) |
+                            ((self[2] & 0b00111111) << 6) |
+                            (self[3] & 0b00111111);
+    }
+}
+
+fn rune::get_jp_digit(rune self) {
+    return jp_digits.iter().position_with(fn(x, c) x == c, self)
+        .map(fn(x) #cast(i64, x)).unwrap_or(-1);
+}
+
+fn rune::get_jp_unit(rune self) {
+    return jp_units.get(self).unwrap_or(0);
+}
+
+fn rune::is_jp_numeral(rune self) {
+    return self.get_jp_digit() >= 0 || self.get_jp_unit() > 0;
+}
+
+fn rune::encode(rune self) -> string {
+    res := "";
+
+    if self <= 0x7F {
+        res.push(#cast(char, self));
+    } else if self <= 0x7FF {
+        res.push(0xC0 | (self >> 6) & 0x1F);
+        res.push(0x80 | (self & 0x3F));
+    } else if self <= 0xFFFF {
+        res.push(0xE0 | (self >> 12) & 0x0F);
+        res.push(0x80 | (self >> 6) & 0x3F);
+        res.push(0x80 | (self & 0x3F));
+    } else if self <= 0x10FFFF {
+        res.push(0xF0 | ((self >> 18) & 0x07));
+        res.push(0x80 | ((self >> 12) & 0x3F));
+        res.push(0x80 | ((self >> 6) & 0x3F));
+        res.push(0x80 | (self & 0x3F));
+    }
+
+    return res;
+}
+
+fn Array::utf8_encode(rune[] self) {
+    return self.map(fn(x) rune::encode(x)).join("");
+}
+
+fn rune::is_letter(rune self) {
+    return self >= 0x0041 && self <= 0x005A || // A-Z
+           self >= 0x0061 && self <= 0x007A || // a-z
+           self >= 0x4E00 && self <= 0x9FFF || // 漢字
+           self >= 0x3040 && self <= 0x309F || // ひらがな
+           self >= 0x30A0 && self <= 0x30FF;   // カタカナ
+}
+
+fn rune::is_number(rune self) -> bool {
+    return self >= 0x30   && self <= 0x39 || // halfwidth digits e.g. 0, 1, 2, ..., 9
+           self >= 0xFF10 && self <= 0xFF19; // fullwidth digits e.g. ０, １, ２, ..., ９
+}
+
+fn rune::is_punctuation(rune self) {
+    return self >= 0x21   && self <= 0x2F   || // e.g. !, ", #, $, %, &
+           self >= 0x3A   && self <= 0x40   || // e.g. :, ;, <, =, >, ?
+           self >= 0x5B   && self <= 0x60   || // e.g. [, \, ], ^, _, `
+           self >= 0x7B   && self <= 0x7E   || // e.g. {, |, }, ~
+           self >= 0x2000 && self <= 0x206F || // general punctuation e.g. –, —, •
+           self >= 0x3000 && self <= 0x303F || // cjk punctuation e.g. 、「」, 、, 。
+           self >= 0xFF00 && self <= 0xFFEF;   // fullwidth forms e.g.（, ）, ！
+}

@@ -1,0 +1,40 @@
+%YAML 1.2
+---
+name: いちご
+file_extensions:
+  - igo
+scope: source.igo
+contexts:
+  main:
+    - match: '\b関数|返す\b'
+      scope: keyword.control.igo
+    - match: '\b整数\b'
+      scope: meta.type.igo
+    - match: '(?<=関数\s)(\w+)'
+      scope: entity.name.function.igo
+    - match: '(?<=整数\s)(\w+)'
+      scope: variable.other.igo
+    - match: '[0-9]+'
+      scope: constant.numeric.igo
+    - match: '\b(?!関数|整数)\w+(?=（)\b'
+      scope: entity.name.function.igo
+    - match: '\b(?!関数|整数)\w+\b'
+      scope: variable.other.igo
+    - match: '[「」]'
+      push: string
+    - match: '[『』（）、]'
+      scope: punctuation.section.block.igo
+    - match: '。'
+      scope: punctuation.terminator.igo
+    - match: '[＝＋ー＊・；]'
+      scope: keyword.operator.igo
+    - match: '※'
+      push: comment
+  comment:
+    - meta_scope: comment.line.double-slash.igo
+    - match: '\n'
+      pop: true
+  string:
+    - meta_scope: string.quoted.double.igo
+    - match: '[「」]'
+      pop: true

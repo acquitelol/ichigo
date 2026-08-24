@@ -1,0 +1,229 @@
+use std/prelude;
+use ../lib/utf8;
+
+use enums;
+global pub;
+
+struct Lexer {
+    string file,
+    string input,
+    u64 position
+}
+
+fn Lexer::new(string file, string input) {
+    return Lexer {
+        file,
+        input,
+        position = 0
+    };
+}
+
+fn Lexer::is_eof(Lexer *self) {
+    return self.position >= self.input.len();
+}
+
+fn Lexer::current_char(Lexer *self) {
+    left_until_eof := self.input.len() - self.position;
+    offset := left_until_eof <= 4 ? left_until_eof : #cast(i64, 4);
+    slice := string::slice(self.input, self.position, self.position + offset);
+    return slice.utf8_decode();
+}
+
+fn Lexer::advance(Lexer *self) {
+    if !self.is_eof() {
+        self.position += self.input[self.position].utf8_len();
+    }
+}
+
+fn Lexer::skip_whitespace(Lexer *self) {
+    while !self.is_eof() && (self.current_char().encode()[0].is_whitespace()
+        || self.current_char().encode() == "　") {
+        self.advance();
+    }
+}
+
+fn Lexer::consume_identifier(Lexer *self) {
+    res := []rune;
+
+    while !self.is_eof() {
+        current_char := self.current_char();
+
+        if current_char.is_letter() || current_char.is_number() || #cast(char, current_char) == '_' {
+            res.push(current_char);
+            self.advance();
+        } else {
+            break;
+        }
+    }
+
+    return res.utf8_encode();
+}
+
+fn Lexer::consume_string_literal(Lexer *self) {
+    self.advance();
+    res := []rune;
+    nesting := 0;
+
+    while !self.is_eof() {
+        current_char := self.current_char();
+
+        if current_char.encode() == "」" {
+            if nesting > 0 {
+                nesting -= 1;
+                res.push(current_char);
+                self.advance();
+            } else {
+                self.advance();
+                break;
+            }
+        } else if current_char.encode() == "「" {
+            nesting += 1;
+            res.push(current_char);
+            self.advance();
+        } else {
+            res.push(current_char);
+            self.advance();
+        }
+    }
+
+    return res.utf8_encode();
+}
+
+fn Lexer::consume_number_literal(Lexer *self) -> i64 {
+    res := []rune;
+
+    while !self.is_eof() && self.current_char().is_number() {
+        res.push(self.current_char());
+        self.advance();
+    }
+
+    return i64::parse(res.utf8_encode());
+}
+
+fn Lexer::consume_comment(Lexer *self) -> string {
+    self.advance(); // Skip the ※
+    res := []rune;
+
+    while !self.is_eof() && #cast(char, self.current_char()) != '\n' {
+        res.push(self.current_char());
+        self.advance();
+    }
+
+    return res.utf8_encode();
+}
+
+fn Lexer::consume_jp_numeral(Lexer *self) -> Option<i32> {
+    total := chunk := 0;
+    current := -1;
+
+    last_unit := 1e15;
+    last_was_digit := false;
+
+    while self.current_char().is_jp_numeral() {
+        digit := self.current_char().get_jp_digit();
+        if digit >= 0 {
+            if last_was_digit { return None(); }
+
+            current = digit;
+            last_was_digit = true;
+            self.advance();
+            continue;
+        }
+
+        unit := self.current_char().get_jp_unit();
+
+        if unit > 0 {
+            if unit >= last_unit { return None(); }
+            value := current;
+            chunk += value < 0 ? unit : value * unit;
+
+            current = -1;
+            last_unit = unit;
+            last_was_digit = false;
+
+            if unit >= 10000 {
+                total += chunk;
+                chunk = 0;
+                last_unit = 1e15;
+            }
+
+            self.advance();
+            continue;
+        }
+
+        return None();
+    }
+
+    if current >= 0 { chunk += current; }
+    return Some(total + chunk);
+}
+
+fn Lexer::next_token(Lexer *self) -> Option<Token> {
+    if self.is_eof() { return None(); }
+    self.skip_whitespace();
+    c := self.current_char();
+
+    if _, op := c.to_operator() {
+        self.advance();
+
+        return Some(Token::new(
+            TokenKind::Operator,
+            TokenValue::Operator(op)
+        ));
+    }
+
+    if c.is_jp_numeral() && _, numeral := self.consume_jp_numeral() {
+        return Some(Token::new(
+            TokenKind::Number,
+            TokenValue::Number(numeral)
+        ));
+    }
+
+    if c.is_letter() {
+        return Some(Token::new(
+            TokenKind::Identifier,
+            TokenValue::String(self.consume_identifier())
+        ));
+    }
+
+    if c.encode() == "「"　{
+        return Some(Token::new(
+            TokenKind::String,
+            TokenValue::String(self.consume_string_literal())
+        ));
+    }
+
+    if c.encode() == "※"　{
+        return Some(Token::new(
+            TokenKind::Comment,
+            TokenValue::String(self.consume_comment())
+        ));
+    }
+
+    if c.is_number() {
+        return Some(Token::new(
+            TokenKind::Number,
+            TokenValue::Number(self.consume_number_literal())
+        ));
+    }
+
+    if c.is_punctuation() {
+        punct := self.current_char();
+        self.advance();
+
+        return Some(Token::new(
+            TokenKind::Punctuation,
+            TokenValue::String(punct.encode())
+        ));
+    }
+
+    return None();
+}
+
+fn Lexer::iter(Lexer self) -> Iterator<Token, SingleEnded> {
+    return Iterator {
+        env = Box::new(self).to_ptr(),
+        next = Lexer::next_token,
+        next_back = nil
+    };
+}

@@ -1,0 +1,18 @@
+use std/prelude;
+
+use type;
+use data_item;
+global pub;
+
+struct QbeData {
+    string name,
+    (QbeType, QbeDataItem)[] items,
+}
+
+fn QbeData::__fmt__(QbeData self, i32 nesting) {
+    items := self.items
+        .map(fn(x) "{} {}".format(x.x, x.y))
+        .join(", ");
+
+    return "export data ${} = {{ {} }".format(self.name, items);
+}

@@ -1,0 +1,12 @@
+# Whether Japanese is enabled
+# 言語が日本語かどうか
+日本語: false
+
+# Whether to show both languages in code blocks
+# コードブロックに両方の言語を表示するかどうか
+両方: true
+
+# Ignore, used to not dox myself
+# 無視してください、名前を見せたくありません
+名前: "name.yaml"
+# 名前: "name.public.yaml"

@@ -1,0 +1,180 @@
+use std/prelude;
+use ../../lexer/enums;
+
+use value;
+use type;
+global pub;
+
+enum QbeInstrKind {
+    Call,
+    Return,
+    Copy,
+    BinOp,
+    Compare,
+    JMP,
+    JNZ
+}
+
+pub enum QbeComparison {
+    LessThan = "slt",
+    LessThanEqual = "sle",
+    GreaterThan = "sgt",
+    GreaterThanEqual = "sge",
+    Equal = "eq",
+    NotEqual = "ne",
+}
+
+struct QbeInstrCall {
+    QbeValue value,
+    (QbeType, QbeValue)[] args,
+}
+
+struct QbeInstrReturn {
+    QbeValue value,
+}
+
+struct QbeInstrCopy {
+    QbeValue value,
+}
+
+struct QbeInstrBinOp {
+    QbeValue left,
+    QbeValue right,
+    Operator op,
+}
+
+struct QbeInstrCompare {
+    QbeType type,
+    QbeComparison kind,
+    QbeValue left,
+    QbeValue right
+}
+
+struct QbeInstrJMP {
+    string label
+}
+
+struct QbeInstrJNZ {
+    QbeValue value,
+    string left,
+    string right
+}
+
+struct QbeInstr {
+    QbeInstrKind tag,
+    @unused QbeInstrCall as_call,
+    @unused QbeInstrReturn as_return,
+    @unused QbeInstrCopy as_copy,
+    @unused QbeInstrBinOp as_binop,
+    @unused QbeInstrCompare as_compare,
+    @unused QbeInstrJMP as_jmp,
+    @unused QbeInstrJNZ as_jnz,
+}
+
+fn QbeInstrReturn::__fmt__(QbeInstrReturn self, u64 nesting) {
+    return "ret {}".format(self.value);
+}
+
+fn QbeInstrCopy::__fmt__(QbeInstrCopy self, u64 nesting) {
+    return "copy {}".format(self.value);
+}
+
+fn QbeInstrBinOp::__fmt__(QbeInstrBinOp self, u64 nesting) {
+    if self.op.is_comparison() {
+        return "c{}w {}, {}".format(self.op, self.left, self.right);
+    }
+
+    return "{} {}, {}".format(self.op, self.left, self.right);
+}
+
+fn QbeInstrCall::__fmt__(QbeInstrCall self, u64 nesting) {
+    args := self.args.map(fn(x) "{} {}".format(x.x, x.y));
+
+    if self.value.tag == QbeValueKind::Global
+        && self.value.as_global.inner == "printf" {
+            args.insert(1, "...");
+        }
+
+    return "call {}({})".format(self.value, args.join(", "));
+}
+
+fn QbeInstrCompare::__fmt__(QbeInstrCompare self, u64 nesting) {
+    return "c{}{}".format(self.kind, self.type, self.left, self.right);
+}
+
+fn QbeInstrJMP::__fmt__(QbeInstrJMP self, u64 nesting) {
+    return "jmp @{}".format(self.label);
+}
+
+fn QbeInstrJNZ::__fmt__(QbeInstrJNZ self, u64 nesting) {
+    return "jnz {}, @{}, @{}".format(self.value, self.left, self.right);
+}
+
+fn QbeInstr::__fmt__(QbeInstr self, i32 nesting) {
+    if self.tag == QbeInstrKind::Call {
+        return "{}".format(self.as_call);
+    } else if self.tag == QbeInstrKind::Return {
+        return "{}".format(self.as_return);
+    } else if self.tag == QbeInstrKind::Copy {
+        return "{}".format(self.as_copy);
+    } else if self.tag == QbeInstrKind::BinOp {
+        return "{}".format(self.as_binop);
+    } else if self.tag == QbeInstrKind::Compare {
+        return "{}".format(self.as_compare);
+    } else if self.tag == QbeInstrKind::JMP {
+        return "{}".format(self.as_jmp);
+    } else if self.tag == QbeInstrKind::JNZ {
+        return "{}".format(self.as_jnz);
+    }
+
+    $panic("「QbeInstr::__fmt__」を追加する：{}", self.tag);
+}
+
+fn QbeInstr::Call(QbeValue value, (QbeType, QbeValue)[] args) {
+    return QbeInstr {
+        tag = QbeInstrKind::Call,
+        as_call = QbeInstrCall { value, args }
+    };
+}
+
+fn QbeInstr::Return(QbeValue value) {
+    return QbeInstr {
+        tag = QbeInstrKind::Return,
+        as_return = QbeInstrReturn { value }
+    };
+}
+
+fn QbeInstr::Copy(QbeValue value) {
+    return QbeInstr {
+        tag = QbeInstrKind::Copy,
+        as_copy = QbeInstrCopy { value }
+    };
+}
+
+fn QbeInstr::BinOp(QbeValue left, QbeValue right, Operator op) {
+    return QbeInstr {
+        tag = QbeInstrKind::BinOp,
+        as_binop = QbeInstrBinOp { left, right, op }
+    };
+}
+
+fn QbeInstr::Compare(QbeType type, QbeComparison kind, QbeValue left, QbeValue right) {
+    return QbeInstr {
+        tag = QbeInstrKind::Compare,
+        as_compare = QbeInstrCompare { type, kind, left, right }
+    };
+}
+
+fn QbeInstr::JMP(string label) {
+    return QbeInstr {
+        tag = QbeInstrKind::JMP,
+        as_jmp = QbeInstrJMP { label }
+    };
+}
+
+fn QbeInstr::JNZ(QbeValue value, string left, string right) {
+    return QbeInstr {
+        tag = QbeInstrKind::JNZ,
+        as_jnz = QbeInstrJNZ { value, left, right }
+    };
+}

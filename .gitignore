@@ -1,0 +1,8 @@
+いちご
+name.yaml
+*.pdf
+.DS_Store
+mocha.tmTheme
+test.rs
+build
+.build-*

@@ -1,0 +1,251 @@
+use ../parser/lib/primitives;
+
+use lib/qbe;
+global pub;
+
+struct Compiler {
+    QbeModule module,
+    Primitive[] tree,
+    i32 tmp_counter,
+    HashMap<string, (QbeType, QbeValue)> *[] scopes
+}
+
+fn Compiler::new(Primitive[] tree) {
+    return Compiler {
+        module = QbeModule::new(), tree, tmp_counter = 0, scopes = []
+    };
+}
+
+fn Compiler::unique_name(Compiler *self) {
+    self.tmp_counter += 1;
+    return "tmp.{}".format(self.tmp_counter);
+}
+
+fn Compiler::new_temporary(Compiler *self, string name) {
+    return QbeValue::Temporary(name ?: self.unique_name());
+}
+
+fn Compiler::generate_statement(
+    Compiler *self,
+    AstNode statement,
+    QbeFunction *func
+) -> Option<(QbeType, QbeValue)> {
+    if statement.tag == AstNodeKind::Literal {
+        lit := statement.as_literal;
+
+        if lit.kind == TokenKind::Number {
+            return Some($(QbeType::Int, QbeValue::Const(lit.value.as_number)));
+        } else if lit.kind == TokenKind::Identifier {
+            val := lit.value.as_string;
+            scope := self.scopes.iter().rev().find_with(fn(scope, val) scope.contains_key(val), val);
+
+            if _, scope := scope {
+                return Some($(
+                    scope[val].x,
+                    QbeValue::Temporary(ObjectString::new(val).encoded)
+                ));
+            } else {
+               $panic("「{}」という変数はないね", val);
+            }
+        } else if lit.kind == TokenKind::String {
+            name := self.unique_name();
+            escaped := lit.value.as_string.replace("\"", "\\\"");
+
+            self.module.data_sections.push(QbeData {
+                name,
+                items = [
+                    $(QbeType::Byte, QbeDataItem::String(escaped)),
+                    $(QbeType::Byte, QbeDataItem::Const(0)),
+                ]
+            });
+
+            return Some($(QbeType::Long, QbeValue::Global(name)));
+        }
+
+        $panic("間違ったリテラルの型：{}", lit.kind);
+    } else if statement.tag == AstNodeKind::BinOp {
+        binop := statement.as_binop;
+        left := self.generate_statement(*binop.left, func).unwrap();
+        right := self.generate_statement(*binop.right, func).unwrap();
+        tmp := self.new_temporary(nil);
+
+        stmt := QbeStatement::Assign(
+            tmp,
+            left.x,
+            QbeInstr::BinOp(left.y, right.y, binop.op.value.as_op)
+        );
+
+        func.blocks.last().unwrap().statements.push(stmt);
+        return Some($(left.x, tmp));
+    } else if statement.tag == AstNodeKind::Funcall {
+        funcall := statement.as_funcall;
+        name := QbeValue::Global(funcall.name.original);
+        ty := QbeType::Int;
+        tmp := self.new_temporary(nil);
+
+        if _, tmp_func := self.module.functions.find_with(
+            fn(x, name) x.name.original == name,
+            funcall.name.encoded
+        ) {
+            ty = tmp_func.return_type;
+        }
+
+        args := [](QbeType, QbeValue);
+
+        for arg in funcall.args {
+            args.push(self.generate_statement(arg, func)
+                .expect("ステートメントのコンパイルに失敗しました"));
+        }
+
+        func.blocks.last().unwrap().statements.push(
+            QbeStatement::Assign(
+                tmp,
+                ty,
+                QbeInstr::Call(name, args)
+            )
+        );
+
+        return Some($(ty, tmp));
+    } else if statement.tag == AstNodeKind::Return {
+        stmt := statement.as_return;
+        res := self.generate_statement(*stmt.value, func).unwrap();
+
+        func.blocks.last().unwrap().statements.push(
+            QbeStatement::Volatile(QbeInstr::Return(res.y))
+        );
+
+        func.return_type = res.x;
+        return None();
+    } else if statement.tag == AstNodeKind::Declare {
+        stmt := statement.as_declare;
+        val_ty, value := self.generate_statement(*stmt.value, func).unwrap();
+
+        if stmt.type.is_none() {
+            //ty, tmp = self.scopes.last().unwrap()[stmt.name.original];
+            ty, tmp := self.scopes.iter().rev()
+                .map_with(fn(s, name) s.get(name), stmt.name.original)
+                .find(fn(s) s.is_some())
+                .map(fn(s) s.unwrap())
+                .expect("「{}」という変数はないね".format(stmt.name.original));
+
+            if ty.size() != val_ty.size() {
+                $panic("間違ったタイプ：「{}」と「{}」", ty.display(), val_ty.display());
+            }
+
+            func.blocks.last().unwrap().statements.push(
+                QbeStatement::Assign(tmp, ty, QbeInstr::Copy(value))
+            );
+
+            self.scopes.last().unwrap()[stmt.name.original] = $(val_ty, tmp);
+            return Some($(ty, tmp));
+        }
+
+        tmp := self.new_temporary(stmt.name.encoded);
+        ty := QbeType::from(stmt.type.unwrap().original);
+
+        if ty.size() != val_ty.size() {
+            $panic("間違ったタイプ：「{}」と「{}」", ty.display(), val_ty.display());
+        }
+
+        func.blocks.last().unwrap().statements.push(
+            QbeStatement::Assign(tmp, ty, QbeInstr::Copy(value))
+        );
+
+        self.scopes.last().unwrap()[stmt.name.original] = $(ty, tmp);
+        return Some($(ty, tmp));
+    } else if statement.tag == AstNodeKind::IfStmt {
+        stmt := statement.as_if;
+        self.scopes.push(HashMap::new<string, (QbeType, QbeValue)>());
+
+        self.tmp_counter += 1;
+        body_label := "body.{}".format(self.tmp_counter);
+        end_label := "end.{}".format(self.tmp_counter);
+
+        _, cond_tmp := self.generate_statement(*stmt.cond, func).unwrap();
+
+        func.blocks.last().unwrap().statements.push(QbeStatement::Volatile(
+            QbeInstr::JNZ(cond_tmp, body_label, end_label);
+        ));
+
+        func.blocks.push(QbeBlock::new(body_label));
+
+        for statement in stmt.body {
+            self.generate_statement(statement, func);
+        }
+
+        func.blocks.push(QbeBlock::new(end_label));
+        self.scopes.pop();
+        return None();
+    } else if statement.tag == AstNodeKind::WhileStmt {
+        stmt := statement.as_while;
+        self.scopes.push(HashMap::new<string, (QbeType, QbeValue)>());
+
+        self.tmp_counter += 1;
+        cond_label := "cond.{}".format(self.tmp_counter);
+        body_label := "body.{}".format(self.tmp_counter);
+        end_label := "end.{}".format(self.tmp_counter);
+
+        func.blocks.push(QbeBlock::new(cond_label));
+
+        _, cond_tmp := self.generate_statement(*stmt.cond, func).unwrap();
+        func.add_instruction(QbeInstr::JNZ(cond_tmp, body_label, end_label));
+
+        func.blocks.push(QbeBlock::new(body_label));
+
+        for statement in stmt.body {
+            self.generate_statement(statement, func);
+        }
+
+        if !func.blocks.last().is_some_and(QbeBlock::jumps) {
+            func.add_instruction(QbeInstr::JMP(cond_label));
+        }
+
+        func.blocks.push(QbeBlock::new(end_label));
+        self.scopes.pop();
+        return None();
+    } else {
+        $panic("間違ったタグ：{}", statement.tag);
+    }
+}
+
+fn Compiler::generate_function(Compiler *self, PrimitiveFunction func) {
+    res := QbeFunction::new(func.name, func.args, QbeType::Int);
+    self.scopes.push(HashMap::new<string, (QbeType, QbeValue)>());
+
+    for arg in func.args {
+        ty := QbeType::from(arg.type.original);
+        self.scopes[-1][arg.name.original] = $(ty, QbeValue::Temporary(arg.name.encoded));
+    }
+
+    res.blocks.push(QbeBlock {
+        label = "start",
+        statements = []
+    });
+
+    for statement in func.body {
+        self.generate_statement(statement, &res);
+    }
+
+    if !res.jumps() {
+        res.blocks.last().unwrap().statements.push(
+            QbeStatement::Volatile(QbeInstr::Return(QbeValue::Const(0)))
+        );
+    }
+
+    self.scopes.pop();
+    return res;
+}
+
+fn Compiler::compile(Compiler *self) {
+    for primitive in self.tree {
+        if primitive.tag == PrimitiveKind::Function {
+            self.module.functions.push(self.generate_function(primitive.as_function));
+        }
+    }
+
+    if !self.module.functions.iter().any(fn(func) func.name.original == "main") {
+        $panic("「メイン」という関数はないね。定義してください。");
+    }
+
+    return self.module;
+}

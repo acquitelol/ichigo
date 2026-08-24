@@ -1,0 +1,15 @@
+use ../../lib/encoding;
+
+global pub;
+
+struct Argument {
+    ObjectString name,
+    ObjectString type,
+}
+
+fn Argument::new(string name, string type) {
+    return Argument {
+        name = ObjectString::new(name),
+        type = ObjectString::new(type)
+    };
+}

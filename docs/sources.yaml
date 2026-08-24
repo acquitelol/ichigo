@@ -1,0 +1,280 @@
+qbe:
+  type: Web
+  title: QBE
+  author:
+    - Quentin Carbonneaux
+    - Roland Paterson-Jones
+    - Scott Graham
+  abstract: QBE is a compiler backend that aims to provide 70% of the performance of industrial optimizing compilers in 10% of the code.
+  url:
+    value: https://c9x.me/compile
+    date: 2025-07-04
+
+qbe-docs:
+  type: Web
+  title: QBE Documentation
+  author: Lots of authors
+  url:
+    value: https://c9x.me/compile/doc/il.html
+    date: 2025-07-04
+
+qbe-llvm-comparison:
+  type: Web
+  title: QBE vs LLVM
+  author: Quentin Carbonneaux
+  url:
+    value: https://c9x.me/compile/doc/llvm.html
+    date: 2025-07-04
+
+cranelift:
+  type: Web
+  title: Cranelift
+  author: bytecodealliance
+  url:
+    value: https://cranelift.dev/
+    date: 2025-07-04
+
+llvm:
+  type: Web
+  title: LLVM
+  author: Chris Lattner
+  abstract: Introduction to the LLVM Compiler System
+  date: 2008-11-04
+  url:
+    value: https://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf
+    date: 2025-07-04
+
+llvm-bloated:
+  type: Article
+  title: LLVM is nearly at 2.5 million lines of code
+  author: Michael Larabel
+  date: 2013-12-26
+  url:
+    value: https://www.phoronix.com/news/MTU1MzY
+    date: 2025-07-04
+
+tilde:
+  type: Web
+  title: Tilde
+  author: Yasser Arguelles Snape
+  url:
+    value: https://yasserarg.com/tb
+    date: 2025-07-04
+
+tilde-docs:
+  type: Web
+  title: Tilde Documentation
+  author: Yasser Arguelles Snape
+  date: 2025-03-23
+  url:
+    value: https://github.com/RealNeGate/Cuik/blob/89196bd02e6b750a8215ba0e557679df943d9cb3/docs/IR.txt
+    date: 2025-07-04
+
+SSA:
+  type: Book
+  title: Static Single Assignment
+  author: Lots of authors
+  date: 2018-06-08
+  url:
+    value: https://pfalcon.github.io/ssabook/latest/book-full.pdf
+    date: 2025-07-04
+
+IRDL:
+  type: Book
+  title: "IRDL: An IR Definition Language for SSA Compilers"
+  author:
+    - Mathieu Fehr
+    - Jeff Niu
+    - River Riddle
+    - Mehdi Amini
+    - Zhendong Su
+    - Tobias Grosser
+  url:
+    value: https://grosser.science/static/0c315060e8f3d8454de831910fbb6dd6/fehr-2022-irdl.pdf
+    date: 2025-07-04
+
+transpiler:
+  type: Book
+  title: Transpiler-Based Architecture Design Model for Back-End Layers in Software Development
+  author:
+    - Andrés Bastidas Fuertes
+    - María Pérez
+    - Jaime Meza
+  date: 2023
+  url:
+    value: https://doi.org/10.3390/app132011371
+    date: 2025-07-04
+
+elle:
+  type: Web
+  title: The Elle Programming Language
+  author: Rosie Stratila
+  abstract: A compiled programming language
+  url:
+    value: https://github.com/acquitelol/elle
+    date: 2025-07-04
+
+rust-wide-chars:
+  type: Web
+  title: Rust char documentation
+  author: Rust Maintainers
+  url:
+    value: https://doc.rust-lang.org/std/primitive.char.html
+    date: 2025-07-15
+
+unicode-scalar:
+  type: Web
+  title: Unicode Scalar Value
+  url:
+    value: https://www.unicode.org/versions/Unicode16.0.0/core-spec/chapter-3/#G7404
+    date: 2025-07-15
+
+unicode-encoding-form:
+  type: Web
+  title: Unicode Encoding Form
+  url:
+    value: https://www.unicode.org/glossary/#character_encoding_form
+    date: 2025-07-15
+
+unicode-utf8:
+  type: Web
+  title: UTF-8 Definition
+  url:
+    value: https://www.unicode.org/glossary/#UTF_8
+    date: 2025-07-15
+
+unicode-table:
+  type: Web
+  title: Unicode Table
+  url:
+    value: https://unicodeplus.com/
+    date: 2025-07-15
+
+unicode-release-dates:
+  type: Web
+  title: Unicode Release Dates
+  url:
+    value: https://www.unicode.org/history/publicationdates.html
+    date: 2025-07-16
+
+unicode:
+  type: Web
+  title: Unicode Standard
+  url:
+    value: https://www.unicode.org/versions/Unicode16.0.0/
+    date: 2025-07-16
+
+unicode-chars:
+  type: Web
+  title: Unicode Symbols
+  url:
+    value: https://symbl.cc/en/unicode-table/
+    date: 2025-07-16
+
+ascii:
+  type: Web
+  title: ASCII Standard
+  url:
+    value: https://www.ascii-code.com/ASCII
+    date: 2025-07-16
+
+ascii-timeline:
+  type: Web
+  title: ASCII Timeline
+  url:
+    value: https://www.ascii-code.com/timeline
+    date: 2025-07-16
+
+ascii-extended:
+  type: Web
+  title: ASCII Extended Characters
+  url:
+    value: https://www.ascii-code.com/#extendedASCIIDescription
+    date: 2025-07-16
+
+GB18030:
+  type: Web
+  title: GB18030 Standard
+  url:
+    value: https://www.ibm.com/docs/en/i/7.1.0?topic=applications-gb18030-chinese-standard
+    date: 2025-07-16
+
+iso-latin1:
+  type: Web
+  title: ISO Latin-1
+  url:
+    value: https://cs.stanford.edu/people/miles/iso8859.html
+    date: 2025-07-16
+
+sabi:
+  type: Web
+  title: Sabi
+  author: Yuki Toyoda
+  url:
+    value: https://github.com/yuk1ty/sabi
+    date: 2025-07-16
+
+sabi-proc-macro:
+  type: Web
+  title: Sabi Procedural Macro
+  author: Yuki Toyoda
+  url:
+    value: https://github.com/yuk1ty/sabi/blob/master/sabi_proc_macro/src/lib.rs
+    date: 2025-07-16
+
+nadesiko:
+  type: Web
+  title: Nadeshiko 3
+  author:
+    - kujirahand
+    - Masaya Suzuki (massongit)
+    - yy0931
+  url:
+    value: https://github.com/kujirahand/nadesiko3
+    date: 2025-07-16
+
+nadesiko-js:
+  type: Web
+  title: Nadesiko JS Transpilation
+  url:
+    value: https://github.com/kujirahand/nadesiko3/blob/master/core/src/nako_gen.mts#L2144
+    date: 2025-07-16
+
+rust:
+  type: Web
+  title: Rust
+  url:
+    value: https://www.rust-lang.org/
+    date: 2025-07-16
+
+rust-proc-macro:
+  type: Web
+  title: Rust Procedural Macros
+  url:
+    value: https://doc.rust-lang.org/reference/procedural-macros.html
+    date: 2025-07-16
+
+pratt-parsing:
+  type: Web
+  title: Top-Down Operator Precedence
+  url:
+    value: https://crockford.com/javascript/tdop/tdop.html
+    date: 2025-07-17
+
+shunting-yard:
+  type: Web
+  title: Shunting Yard Algorithm
+  author: Theodore Norvell
+  date: 1999
+  url:
+    value: https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
+    date: 2025-07-17
+
+shunting-yard-date:
+  type: Web
+  title: STICHTING MATHEMATISCH CENTRUM
+  author: Edsger Dijkstra
+  date: 1961-11-01
+  url:
+    value: https://ir.cwi.nl/pub/9251
+    date: 2025-07-18

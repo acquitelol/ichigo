@@ -1,0 +1,149 @@
+use ../../lib/encoding;
+use ../../lexer/enums;
+
+global pub;
+
+enum AstNodeKind {
+    Literal,
+    BinOp,
+    Funcall,
+    Return,
+    Declare,
+    IfStmt,
+    WhileStmt
+}
+
+struct Literal {
+    TokenKind kind,
+    TokenValue value,
+}
+
+struct BinOp {
+    Box<AstNode> left,
+    Box<AstNode> right,
+    Token op,
+}
+
+struct FunctionCall {
+    ObjectString name,
+    AstNode[] args,
+}
+
+struct Return {
+    Box<AstNode> value,
+}
+
+struct Declare {
+    Option<ObjectString> type,
+    ObjectString name,
+    Box<AstNode> value,
+}
+
+struct IfStmt {
+    Box<AstNode> cond,
+    AstNode[] body
+}
+
+struct WhileStmt {
+    Box<AstNode> cond,
+    AstNode[] body
+}
+
+struct AstNode {
+    AstNodeKind tag,
+    @unused Literal as_literal,
+    @unused BinOp as_binop,
+    @unused FunctionCall as_funcall,
+    @unused Return as_return,
+    @unused Declare as_declare,
+    @unused IfStmt as_if,
+    @unused WhileStmt as_while,
+}
+
+fn AstNode::__fmt__(AstNode self, i32 nesting) {
+    if self.tag == AstNodeKind::Literal {
+        return　self.as_literal.__fmt__(nesting);
+    } else if self.tag == AstNodeKind::BinOp {
+        return self.as_binop.__fmt__(nesting);
+    } else if self.tag == AstNodeKind::Funcall {
+        return self.as_funcall.__fmt__(nesting);
+    } else if self.tag == AstNodeKind::Return {
+        return self.as_return.__fmt__(nesting);
+    } else if self.tag == AstNodeKind::Declare {
+        return self.as_declare.__fmt__(nesting);
+    } else if self.tag == AstNodeKind::IfStmt {
+        return self.as_if.__fmt__(nesting);
+    } else if self.tag == AstNodeKind::WhileStmt {
+        return self.as_while.__fmt__(nesting);
+    } else {
+        $die();
+    }
+}
+
+fn AstNode::from_token(Token token) {
+    return AstNode {
+        tag = AstNodeKind::Literal,
+        as_literal = *#cast(Literal *, &token)
+    };
+}
+
+fn AstNode::BinOp(AstNode left, AstNode right, Token op) {
+    return AstNode {
+        tag = AstNodeKind::BinOp,
+        as_binop = BinOp {
+            left = Box::new(left),
+            right = Box::new(right),
+            op
+        }
+    };
+}
+
+fn AstNode::FunctionCall(string name, AstNode[] args) {
+    return AstNode {
+        tag = AstNodeKind::Funcall,
+        as_funcall = FunctionCall {
+            name = ObjectString::new(name),
+            args = args
+        }
+    };
+}
+
+fn AstNode::Return(AstNode value) {
+    return AstNode {
+        tag = AstNodeKind::Return,
+        as_return = Return {
+            value = Box::new(value)
+        }
+    };
+}
+
+fn AstNode::Declare(Option<string> type, string name, AstNode value) {
+    return AstNode {
+        tag = AstNodeKind::Declare,
+        as_declare = Declare {
+            type = type.map(ObjectString::new),
+            name = ObjectString::new(name),
+            value = Box::new(value)
+        }
+    };
+}
+
+fn AstNode::IfStmt(AstNode cond, AstNode[] body) {
+    return AstNode {
+        tag = AstNodeKind::IfStmt,
+        as_if = IfStmt {
+            cond = Box::new(cond),
+            body
+        }
+    };
+}
+
+fn AstNode::WhileStmt(AstNode cond, AstNode[] body) {
+    return AstNode {
+        tag = AstNodeKind::WhileStmt,
+        as_while = WhileStmt {
+            cond = Box::new(cond),
+            body
+        }
+    };
+}

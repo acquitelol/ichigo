@@ -1,0 +1,347 @@
+// This is the HashMap implementation from the Elle standard library
+// Despite this not being directly implemented for the purpose of being
+// used in the project, it was still written by me and used in Ichigo:
+//
+// Link: https://github.com/acquitelol/elle/blob/rewrite/std/collections/hashmap.le
+// Blame: https://github.com/acquitelol/elle/blame/rewrite/std/collections/hashmap.le
+//
+// To be clear, Elle is a language that I created, which includes
+// writing all of the standard library as of 05/02/2026.
+use std/collections/array;
+use std/collections/tuple;
+use std/iter/iterator;
+use std/libc/io;
+use std/hashes;
+use std/limits;
+use std/option;
+use std/core;
+use std/math;
+
+global pub;
+
+struct HashMapBucket<T, U> {
+    T key,
+    U value,
+    bool full
+}
+
+fn HashMapBucket::new<T, U>() {
+    self := #alloc(HashMapBucket<T, U>);
+    self.full = false;
+    return self;
+}
+
+struct HashMap<T, U> {
+    HashMapBucket<T, U> *[] table,
+    u64 size
+}
+
+!pub fn __internal_key_exists_check<T, U>(HashMap<T, U> *self, T key, ElleMeta meta) {
+    if !self.contains_key(key) {
+        io::cprintf(
+            "[%s:%d:%d] ERROR: Key '%s' does not exist in this HashMap.\n"
+                .color("red")
+                .reset(),
+            meta.file,
+            meta.line,
+            meta.column,
+            key.__fmt__(0)
+        );
+
+        libc::abort();
+    }
+}
+
+fn HashMap::__load__<T, U>(ElleMeta meta, HashMap<T, U> *self, T key) {
+    __internal_key_exists_check(self, key, meta);
+    return self.unsafe_get(key);
+}
+
+fn HashMap::__load_ref__<T, U>(ElleMeta meta, HashMap<T, U> *self, T key) {
+    __internal_key_exists_check(self, key, meta);
+    return Box::new(self.unsafe_get(key)).to_ptr();
+}
+
+fn HashMap::__store__<T, U>(HashMap<T, U> *self, T key, U value) {
+    self.put(key, value);
+}
+
+fn HashMap::__fmt__<T, U>(HashMap<T, U> self, i32 nesting) {
+    res := "{\n";
+
+    for u64 i = 0; i < self.table.len(); i += 1 {
+        key := self.table[i].key;
+        value := self.table[i].value;
+
+        if !self.table[i].full {
+            continue;
+        }
+
+        res.extend(" ".repeat(4 * (nesting + 1)));
+        res.extend(key.__fmt__(nesting + 1));
+        res.extend(" => ");
+        res.extend(value.__fmt__(nesting + 1));
+        res.push('\n');
+    }
+
+    res.extend(" ".repeat(4 * nesting));
+    res.push('}');
+    return res;
+}
+
+fn HashMap::with_capacity<T, U>(u64 initial_capacity) -> HashMap<T, U> * {
+    self := #alloc(HashMap<T, U>);
+
+    self.table = Array::with_capacity(initial_capacity);
+    self.size = 0;
+
+    for u64 i = 0; i < initial_capacity; i += 1 {
+        self.table.push(HashMapBucket::new<T, U>());
+    }
+
+    self.table.size = self.table.capacity;
+    return self;
+}
+
+fn HashMap::new<T, U>() -> HashMap<T, U> * {
+    return HashMap::with_capacity(4);
+}
+
+// first_key, first_value are to infer T and U
+fn HashMap::with_entries<T, U>(ElleMeta meta, (T, U) first, ...args) -> HashMap<T, U> * {
+    self := HashMap::with_capacity<T, U>(4);
+    self[first.x] = first.y;
+
+    // subtract the first
+    for u64 i = 0; i < meta.arity - 1; i += 1 {
+        key, value := args.yield((T, U));
+        self[key] = value;
+    }
+
+    return self;
+}
+
+external fn HashMap::with_entries<T, U>(ElleMeta meta, (T, U) first, ...)
+    @alias(HashMap::from_entries) -> HashMap<T, U> *;
+
+external fn HashMap::with_entries<T, U>(ElleMeta meta, (T, U) first, ...)
+    @alias($map) -> HashMap<T, U> *;
+
+fn HashMap::put<T, U>(HashMap<T, U> *self, T key, U value) -> bool {
+    if self.size >= self.table.capacity / 2 {
+        self.resize(self.table.capacity * 2);
+    }
+
+    u64 idx = key.__hash__(self.table.capacity) % self.table.capacity;
+    start_idx := idx;
+
+    while true {
+        if !self.table[idx].full || self.table[idx].key == key {
+            if !self.table[idx].full {
+                self.size += 1;
+            }
+
+            self.table[idx].key = key;
+            self.table[idx].value = value;
+            self.table[idx].full = true;
+            return true;
+        }
+
+        idx = (idx + 1) % self.table.capacity;
+
+        if idx == start_idx {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+external fn HashMap::put<T, U>(HashMap<T, U> *self, T key, U value) @alias(HashMap::set) -> bool;
+
+!pub fn __internal_hashmap_get<T, U>(HashMap<T, U> *self, T key) -> Option<U> {
+    u64 idx = key.__hash__(self.table.capacity) % self.table.capacity;
+    start_idx := idx;
+
+    while self.table[idx].full {
+        if self.table[idx].key == key {
+            return Option::Some<U>(self.table[idx].value);
+        }
+
+        idx = (idx + 1) % self.table.capacity;
+
+        if idx == start_idx {
+            break;
+        }
+    }
+
+    return Option::None<U>();
+}
+
+// Panics if the key does not exist
+fn HashMap::unsafe_get<T, U>(ElleMeta meta, HashMap<T, U> *self, T key) {
+    __internal_key_exists_check(self, key, meta);
+    return __internal_hashmap_get(self, key).unwrap();
+}
+
+fn HashMap::get_or_insert<T, U>(HashMap<T, U> *self, T key, U value) {
+    if self.contains_key(key) {
+        return self.unsafe_get(key);
+    }
+
+    self.set(key, value);
+    return value;
+}
+
+// Returns nil (0) if the key does not exist
+fn HashMap::get<T, U>(HashMap<T, U> *self, T key) {
+    return __internal_hashmap_get(self, key);
+}
+
+fn HashMap::remove<T, U>(HashMap<T, U> *self, T key) -> Option<U> {
+    u64 idx = key.__hash__(self.table.capacity) % self.table.capacity;
+    start_idx := idx;
+
+    while self.table[idx].full {
+        if self.table[idx].key == key {
+            value := self.table[idx].value;
+            self.table[idx].full = false;
+            self.size -= 1;
+            return Option::Some<U>(value);
+        }
+
+        idx = (idx + 1) % self.table.capacity;
+
+        if idx == start_idx {
+            break;
+        }
+    }
+
+    return Option::None<U>();
+}
+
+fn HashMap::contains_key<T, U>(HashMap<T, U> *self, T key) -> bool {
+    u64 idx = key.__hash__(self.table.capacity) % self.table.capacity;
+    start_idx := idx;
+
+    while self.table[idx].full {
+        if self.table[idx].key == key {
+            return true;
+        }
+
+        idx = (idx + 1) % self.table.capacity;
+
+        if idx == start_idx {
+            break;
+        }
+    }
+
+    return false;
+}
+
+fn HashMap::resize<T, U>(HashMap<T, U> *self, u64 new_capacity) {
+    old_table := self.table;
+
+    self.table = Array::with_capacity(new_capacity);
+    self.size = 0;
+
+    for u64 i = 0; i < new_capacity; i += 1 {
+        self.table.push(HashMapBucket::new<T, U>());
+    }
+
+    for u64 i = 0; i < old_table.len(); i += 1 {
+        if old_table[i].full {
+            self.put(
+                old_table[i].key,
+                old_table[i].value
+            );
+        }
+    }
+
+    self.table.size = self.table.capacity;
+}
+
+fn HashMap::size<T, U>(HashMap<T, U> *self) {
+    return self.size;
+}
+
+fn HashMap::is_empty<T, U>(HashMap<T, U> *self) -> bool {
+    return self.size == 0;
+}
+
+fn HashMap::clear<T, U>(HashMap<T, U> *self) {
+    self.size = 0;
+
+    for u64 i = 0; i < self.table.capacity; i += 1 {
+        self.table[i].full = false;
+    }
+}
+
+struct HashMapEnv<T, U> {
+    HashMap<T, U> *base,
+    u64 i
+}
+
+fn HashMap::keys<T, U>(HashMap<T, U> *self) -> Iterator<T, SingleEnded> {
+    HashMapEnv<T, U> env = HashMapEnv { base = self, i = 0 };
+
+    return Iterator {
+        env = Box::new(env).to_ptr(),
+        next = fn(HashMapEnv<T, U> *env) {
+            while env.i < env.base.table.len() {
+                if env.base.table[env.i].full {
+                    key := env.base.table[env.i].key;
+                    env.i += 1;
+                    return Option::Some(key);
+                }
+                env.i += 1;
+            }
+            return Option::None<T>();
+        },
+        next_back = nil
+    };
+}
+
+fn HashMap::values<T, U>(HashMap<T, U> *self) -> Iterator<U, SingleEnded> {
+    HashMapEnv<T, U> env = HashMapEnv { base = self, i = 0 };
+
+    return Iterator {
+        env = Box::new(env).to_ptr(),
+        next = fn(HashMapEnv<T, U> *env) {
+            while env.i < env.base.table.len() {
+                if env.base.table[env.i].full {
+                    value := env.base.table[env.i].value;
+                    env.i += 1;
+                    return Option::Some(value);
+                }
+                env.i += 1;
+            }
+            return Option::None<U>();
+        },
+        next_back = nil
+    };
+}
+
+fn HashMap::__iter__<T, U>(HashMap<T, U> *self) -> Iterator<(T, U), SingleEnded> {
+    HashMapEnv<T, U> env = HashMapEnv { base = self, i = 0 };
+
+    return Iterator {
+        env = Box::new(env).to_ptr(),
+        next = fn(HashMapEnv<T, U> *env) {
+            while env.i < env.base.table.len() {
+                if env.base.table[env.i].full {
+                    key := env.base.table[env.i].key;
+                    value := env.base.table[env.i].value;
+                    env.i += 1;
+                    return Option::Some($(key, value));
+                }
+                env.i += 1;
+            }
+            return Option::None<(T, U)>();
+        },
+        next_back = nil
+    };
+}
+
+external fn HashMap::__iter__<T, U>(HashMap<T, U> *self) @alias(HashMap::iter) -> Iterator<(T, U), SingleEnded>;
+external fn HashMap::__iter__<T, U>(HashMap<T, U> *self) @alias(HashMap::entries) -> Iterator<(T, U), SingleEnded>;

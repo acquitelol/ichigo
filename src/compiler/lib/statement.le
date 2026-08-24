@@ -1,0 +1,59 @@
+use std/prelude;
+
+use value;
+use type;
+use instr;
+global pub;
+
+enum QbeStatementKind {
+    Assign,
+    Volatile
+}
+
+struct QbeAssign {
+    QbeValue value,
+    QbeType type,
+    QbeInstr instr,
+}
+
+struct QbeVolatile {
+    QbeInstr instr,
+}
+
+struct QbeStatement {
+    QbeStatementKind tag,
+    @unused QbeAssign as_assign,
+    @unused QbeVolatile as_volatile,
+}
+
+fn QbeAssign::__fmt__(QbeAssign self, i32 nesting) {
+    return "{} ={} {}".format(self.value, self.type, self.instr);
+}
+
+fn QbeVolatile::__fmt__(QbeVolatile self, i32 nesting) {
+    return "{}".format(self.instr);
+}
+
+fn QbeStatement::__fmt__(QbeStatement self, i32 nesting) {
+    if self.tag == QbeStatementKind::Assign {
+        return "{}".format(self.as_assign);
+    } else if self.tag == QbeStatementKind::Volatile {
+        return "{}".format(self.as_volatile);
+    }
+
+    $die();
+}
+
+fn QbeStatement::Assign(QbeValue value, QbeType type, QbeInstr instr) {
+    return QbeStatement {
+        tag = QbeStatementKind::Assign,
+        as_assign = QbeAssign { value, type, instr }
+    };
+}
+
+fn QbeStatement::Volatile(QbeInstr instr) {
+    return QbeStatement {
+        tag = QbeStatementKind::Volatile,
+        as_volatile = QbeVolatile { instr }
+    };
+}

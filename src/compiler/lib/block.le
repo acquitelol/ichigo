@@ -1,0 +1,40 @@
+use std/prelude;
+
+use statement;
+global pub;
+
+struct QbeBlock {
+    string label,
+    QbeStatement[] statements,
+}
+
+fn QbeBlock::__fmt__(QbeBlock self, i32 nesting) {
+    res := "";
+
+    res.extend("@{}\n".format(self.label));
+
+    res.extend("{}".format(self.statements
+        .map(fn(x) "\t{}".format(x))
+        .join("\n")));
+
+    return res;
+}
+
+fn QbeBlock::new(string label) {
+    return QbeBlock { label, statements = [] };
+}
+
+fn QbeBlock::add_instruction(QbeBlock self, QbeInstr instr) {
+    self.statements.push(QbeStatement::Volatile(instr));
+}
+
+fn QbeBlock::jumps(QbeBlock self) {
+    if _, last := self.statements.last() {
+        if last.tag != QbeStatementKind::Volatile { return false; }
+
+        tag := last.as_volatile.instr.tag;
+        return tag == QbeInstrKind::Return
+            || tag == QbeInstrKind::JMP
+            || tag == QbeInstrKind::JNZ;
+    }
+}

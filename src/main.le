@@ -1,0 +1,49 @@
+use std/prelude;
+
+use lexer/lexer;
+use parser/parser;
+use compiler/compiler;
+
+fn main(string[] args) {
+    program := args.remove(0).expect("プログラム");
+    file := args.remove(0).expect("使い方: {} file.igo".format(program));
+
+    if !file.ends_with(".igo") {
+        $panic("拡張子が間違っています。「.igo」を使ってください。");
+    }
+
+    input := io::read_to_string(file);
+    if input.is_empty() {　$panic("ファイルが空です。");　}
+
+    tokens := Lexer::new(file, input).iter().collect();
+
+    if args.get(0).is_some_and(fn(x) x == "--tokens") {
+        $dbg(tokens);
+        return;
+    }
+
+    tree := Parser::new(tokens).parse();
+
+    if args.get(0).is_some_and(fn(x) x == "--ast") {
+        $dbg(tree);
+        return;
+    }
+
+    module := Compiler::new(tree).compile();
+
+    if args.get(0).is_some_and(fn(x) x == "--ssa") {
+        // Printing without dbg so it can be piped into a file. The others
+        // are not independently valid source code so `$dbg` can be used.
+        $println(module);
+        return;
+    }
+
+    ssa_path := file.replace("igo", "ssa");
+    asm_path := file.replace("igo", "s");
+    io::write_to_file(ssa_path, "{}".format(module));
+
+    libc::system("qbe -o {} {}".format(asm_path, ssa_path));
+    libc::system("cc -o {} {}".format(file.replace(".igo", ""), asm_path));
+
+    io::remove(ssa_path); io::remove(asm_path);
+}

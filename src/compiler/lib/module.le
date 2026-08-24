@@ -1,0 +1,29 @@
+use function;
+use data;
+global pub;
+
+struct QbeModule {
+    QbeFunction[] functions,
+    QbeData[] data_sections,
+}
+
+fn QbeModule::__fmt__(QbeModule self, i32 nesting) {
+    res := "";
+
+    for data_section in self.data_sections {
+        res.extend("{}\n".format(data_section));
+    }
+
+    for function in self.functions {
+        res.extend("{}\n".format(function));
+    }
+
+    return res;
+}
+
+fn QbeModule::new() {
+    return QbeModule {
+        functions = [],
+        data_sections = []
+    };
+}

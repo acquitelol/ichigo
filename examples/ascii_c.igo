@@ -1,0 +1,8 @@
+関数　メイン（）『
+    整数　ア＝〇ー七。
+    ア＝abs（ア）。
+
+    もし　ア：七　『
+        puts（「abs worked correctly」）。
+    』
+』

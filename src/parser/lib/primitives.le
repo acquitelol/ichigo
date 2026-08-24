@@ -1,0 +1,38 @@
+use ../../lib/encoding;
+
+use argument;
+use astnode;
+global pub;
+
+enum PrimitiveKind {
+    Function
+}
+
+struct PrimitiveFunction {
+    ObjectString name,
+    Argument[] args,
+    AstNode[] body,
+}
+
+struct Primitive {
+    PrimitiveKind tag,
+    PrimitiveFunction as_function,
+}
+
+fn Primitive::__fmt__(Primitive self, i32 nesting) {
+    if self.tag == PrimitiveKind::Function {
+        return "{}".format(self.as_function);
+    }
+
+    $die();
+}
+
+fn Primitive::Function(string name, Argument[] args, AstNode[] body) {
+    return Primitive {
+        tag = PrimitiveKind::Function,
+        as_function = PrimitiveFunction {
+            name = ObjectString::new(name),
+            args, body
+        }
+    };
+}

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>name</key>
+    <string>いちご</string>
+    <key>semanticClass</key>
+    <string>theme.dark.ichigo</string>
+    <key>author</key>
+    <string>Rosie</string>
+    <key>colorSpaceName</key>
+    <string>sRGB</string>
+    <key>settings</key>
+    <array>
+        <dict>
+          <key>settings</key>
+          <dict>
+            <key>background</key>
+            <string>#000000</string>
+            <key>foreground</key>
+            <string>#000000</string>
+          </dict>
+        </dict>
+        <dict>
+          <key>scope</key>
+          <string>entity.name.function, variable.parameter, keyword.other.rust, meta.function.call.rust, support.function.rust</string>
+          <key>settings</key>
+          <dict>
+            <key>foreground</key>
+            <string>#ffc2ea</string>
+          </dict>
+        </dict>
+        <dict>
+          <key>scope</key>
+          <string>keyword.declaration.variable.rust, meta.type, meta.type-alias, storage.type, support.type, entity.name.type, meta.function.parameters</string>
+          <key>settings</key>
+          <dict>
+            <key>foreground</key>
+            <string>#ffd8c2</string>
+          </dict>
+        </dict>
+        <dict>
+          <key>scope</key>
+          <string>keyword.control, source.igo, source.rust, storage.type.function.rust</string>
+          <key>settings</key>
+          <dict>
+            <key>foreground</key>
+            <string>#dcc2ff</string>
+          </dict>
+        </dict>
+        <dict>
+          <key>scope</key>
+          <string>constant.numeric</string>
+          <key>settings</key>
+          <dict>
+            <key>foreground</key>
+            <string>#fcf9d7</string>
+          </dict>
+        </dict>
+        <dict>
+          <key>scope</key>
+          <string>string</string>
+          <key>settings</key>
+          <dict>
+            <key>foreground</key>
+            <string>#f2c8ae</string>
+          </dict>
+        </dict>
+        <dict>
+          <key>scope</key>
+          <string>punctuation, punctuation.section.block, punctuation.terminator</string>
+          <key>settings</key>
+          <dict>
+            <key>foreground</key>
+            <string>#ffe0f4</string>
+          </dict>
+        </dict>
+        <dict>
+          <key>scope</key>
+          <string>keyword.operator</string>
+          <key>settings</key>
+          <dict>
+            <key>foreground</key>
+            <string>#e0e7ff</string>
+          </dict>
+        </dict>
+        <dict>
+          <key>scope</key>
+          <string>comment, punctuation.definition.comment</string>
+          <key>settings</key>
+          <dict>
+            <key>foreground</key>
+            <string>#786674</string>
+            <key>fontStyle</key>
+            <string>italic</string>
+          </dict>
+        </dict>
+    </array>
+</dict>

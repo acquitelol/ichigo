@@ -1,0 +1,34 @@
+<program> ::= <function> | <function> <program>
+<function> ::= "関数" <identifier> "（" [ <parameters> ] "）" "『" <statements> "』"
+
+<parameters> ::= <parameter> | <parameter> "、" <parameters>
+<parameter> ::= <type> " " <identifier>
+
+<statements> ::= <node> | <node> <statements>
+<node> ::= (<statement> | <comment>)
+<statement> ::= (<declaration> | <function-call> | <return> | <if> | <while>) "。"
+
+<declaration> ::= <type> <identifier> "＝" <expression>
+<type> ::= "整数" | "文字列" | "バイト"
+
+<function-call> ::= <identifier> "（" <arguments> "）"
+<arguments> ::= <expression> | <expression> "、" <arguments> | ""
+<return> ::= "返す" <expression>
+<while> ::= "間" <expression> "『" <statements> "』"
+<if> ::= "もし" <expression> "『" <statements> "』"
+
+<expression> ::= <term> | <expression> <operator> <term>
+<operator> ::= "＋" | "ー" | "＊" | "／" | "％" |　"：" | "！" |  "+" | "-" | "*" | "/" | "%" | ":" | "!"
+<term> ::= <literal> | <identifier> | <function-call> | "(" <expression> ")"
+
+<literal> ::= <number> | <string>
+<comment> ::= "※" <text>
+<string> ::= "「" <text> "」"
+<number> ::= <digit> | <digit> <number>
+<digit> ::= %x30-39 ; 0-9
+
+<identifier> ::= <letter> | <identifier> <letter>
+<text> ::= <group> | <group> <text>
+<group> ::= <identifier> | <number>
+<letter> ::= %x3040-30FF | %x4E00-9FFF ; | %x41-5A | %x61-7A
+<char> ::= %x0000-FFFF

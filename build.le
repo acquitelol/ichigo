@@ -1,0 +1,62 @@
+#!/usr/bin/env -S ellec --silent --run
+use std/prelude;
+
+namespace DIR;
+
+enum DirentType @repr(u8) {
+    Dir = 0b00000100,
+    Reg = 0b00001000,
+}
+
+struct Dirent @nofmt {
+    u64 ino,
+	u64 seekoff,
+	u16 reclen,
+	u16 namlen,
+	DirentType type,
+	char[255] name
+}
+
+external fn opendir(string path) @alias(DIR::open) -> DIR *;
+external fn readdir(DIR *dir) @alias(DIR::read) -> Dirent *;
+external fn closedir(DIR *dir) @alias(DIR::close);
+
+fn collect_files(string path, string[] out) {
+    dir := DIR::open(path) ?: $die();
+    defer dir.close();
+
+    while dirent := dir.read() {
+        if [".", ".."].contains(dirent.name) { continue; }
+        out_path := "{}/{}".format(path, dirent.name);
+
+        if dirent.type == DirentType::Dir {
+            collect_files(out_path, out);
+        } else if dirent.type == DirentType::Reg {
+            out.push(out_path);
+        }
+    }
+}
+
+fn generate_sources() {
+    path := "src";
+    $printf("Generating files at {}...", path.color("green").reset());
+    collect_files(path, files := []string);
+    io::write_to_file("docs/srcs.txt", files.join("\n"));
+    $printf(
+        "Generated {} files at {}!",
+        "{}".format(files.len()).color("green").reset(),
+        path.color("green").reset()
+    );
+}
+
+fn compile_docs() {
+    path := "docs/main.typ";
+    $printf("Compiling typst at {}...", path.color("green").reset());
+    libc::system("typst c {} --root ..".format(path));
+    $printf("Compiled {}!", path.color("green").reset());
+}
+
+fn main() {
+    generate_sources();
+    compile_docs();
+}

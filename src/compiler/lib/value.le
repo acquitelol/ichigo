@@ -1,0 +1,72 @@
+global pub;
+
+enum QbeValueKind {
+    Temporary,
+    Global,
+    Const
+}
+
+struct Temporary {
+    string inner,
+}
+
+struct Global {
+    string inner,
+}
+
+struct Const {
+    i64 inner,
+}
+
+struct QbeValue {
+    QbeValueKind tag,
+    @unused Temporary as_temp,
+    @unused Global as_global,
+    @unused Const as_const,
+}
+
+fn Temporary::__fmt__(Temporary self, i32 nesting) {
+    return "%{}".format(self.inner);
+}
+
+fn Global::__fmt__(Global self, i32 nesting) {
+    quote := self.inner.iter().any(fn(x) x < 0) ? "\"" : "";
+    return "${}{}{}".format(quote, self.inner, quote);
+}
+
+fn Const::__fmt__(Const self, i32 nesting) {
+    return "{}".format(self.inner);
+}
+
+fn QbeValue::__fmt__(QbeValue self, i32 nesting) {
+    if self.tag == QbeValueKind::Temporary {
+        return "{}".format(self.as_temp);
+    } else if self.tag == QbeValueKind::Global {
+        return "{}".format(self.as_global);
+    } else if self.tag == QbeValueKind::Const {
+        return "{}".format(self.as_const);
+    }
+
+    $die();
+}
+
+fn QbeValue::Temporary(string inner) {
+    return QbeValue {
+        tag = QbeValueKind::Temporary,
+        as_temp = Temporary { inner }
+    };
+}
+
+fn QbeValue::Global(string inner) {
+    return QbeValue {
+        tag = QbeValueKind::Global,
+        as_global = Global { inner }
+    };
+}
+
+fn QbeValue::Const(i64 inner) {
+    return QbeValue {
+        tag = QbeValueKind::Const,
+        as_const = Const { inner }
+    };
+}

@@ -1,0 +1,36 @@
+// This is the Stack implementation from the Elle standard library
+// Despite this not being directly implemented for the purpose of being
+// used in the project, it was still written by me and used in Ichigo:
+//
+// Link: https://github.com/acquitelol/elle/blob/rewrite/std/collections/stack.le
+// Blame: https://github.com/acquitelol/elle/blame/rewrite/std/collections/stack.le
+//
+// To be clear, Elle is a language that I created, which includes
+// writing all of the standard library as of 05/02/2026.
+use std/collections/array;
+use std/result;
+global pub;
+
+struct Stack<T> {
+    T[] inner
+}
+
+fn Stack::new<T>() -> Stack<T> {
+    return Stack { inner = [] };
+}
+
+fn Stack::push<T>(Stack<T> self, T value) {
+    self.inner.push(value);
+}
+
+fn Stack::pop<T>(Stack<T> self) -> Option<T> {
+    return self.inner.pop();
+}
+
+fn Stack::peek<T>(Stack<T> self) -> Option<T> {
+    return self.inner.last();
+}
+
+fn Stack::is_empty<T>(Stack<T> self) -> bool {
+    return self.inner.is_empty();
+}

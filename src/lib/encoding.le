@@ -1,0 +1,37 @@
+use std/collections/hashmap;
+global pub;
+
+pub let locale_map = $map(#[
+    $("メイン", "main"),
+    $("プリント", "printf"),
+    $("プット", "puts"),
+]);
+
+// 各バイトを2桁の16進数表現に変換する
+fn string::to_hex_bytes(string input) {
+    res := "";
+
+    for c in input {
+        char[2] tmp;
+        io::sprintf(tmp, "%hhX", #cast(u8, c));
+        res.extend(tmp);
+    }
+
+    return res;
+}
+
+struct ObjectString {
+    string original,
+    string encoded,
+}
+
+fn ObjectString::__fmt__(ObjectString self, i32 nesting) {
+    return "{} ({})".format(self.original, self.encoded);
+}
+
+fn ObjectString::new(string value) {
+    return ObjectString {
+        original = locale_map.get(value).unwrap_or(value),
+        encoded = locale_map.get(value).unwrap_or("_{}".format(value.to_hex_bytes()))
+    };
+}
