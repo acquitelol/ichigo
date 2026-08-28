@@ -84,7 +84,7 @@ fn Compiler::generate_statement(
         tmp := self.new_temporary(nil);
 
         if _, tmp_func := self.module.functions.find_with(
-            fn(x, name) x.name.original == name,
+            fn: x0.name.original == x1,
             funcall.name.encoded
         ) {
             ty = tmp_func.return_type;
@@ -123,9 +123,9 @@ fn Compiler::generate_statement(
         if stmt.type.is_none() {
             //ty, tmp = self.scopes.last().unwrap()[stmt.name.original];
             ty, tmp := self.scopes.iter().rev()
-                .map_with(fn(s, name) s.get(name), stmt.name.original)
-                .find(fn(s) s.is_some())
-                .map(fn(s) s.unwrap())
+                .map_with(fn: x0.get(x1), stmt.name.original)
+                .find(fn: it.is_some())
+                .map(fn: it.unwrap())
                 .expect("「{}」という変数はないね".format(stmt.name.original));
 
             if ty.size() != val_ty.size() {
@@ -243,7 +243,7 @@ fn Compiler::compile(Compiler *self) {
         }
     }
 
-    if !self.module.functions.iter().any(fn(func) func.name.original == "main") {
+    if !self.module.functions.iter().any(fn: it.name.original == "main") {
         $panic("「メイン」という関数はないね。定義してください。");
     }
 

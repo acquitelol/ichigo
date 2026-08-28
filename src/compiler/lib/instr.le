@@ -88,7 +88,7 @@ fn QbeInstrBinOp::__fmt__(QbeInstrBinOp self, u64 nesting) {
 }
 
 fn QbeInstrCall::__fmt__(QbeInstrCall self, u64 nesting) {
-    args := self.args.map(fn(x) "{} {}".format(x.x, x.y));
+    args := self.args.map(fn: "{} {}".format(it.x, it.y));
 
     if self.value.tag == QbeValueKind::Global
         && self.value.as_global.inner == "printf" {

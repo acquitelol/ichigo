@@ -14,14 +14,14 @@ struct QbeFunction {
 fn QbeFunction::__fmt__(QbeFunction self, i32 nesting) {
     res := "";
 
-    quote := self.name.original.iter().any(fn(x) x < 0) ? "\"" : "";
+    quote := self.name.original.iter().any(fn: it < 0) ? "\"" : "";
     res.extend("export function {} ${}{}{}({}) {{\n".format(
         self.return_type,
         quote,
         self.name.original,
         quote,
-        self.args.map(fn(x) {
-            ty := QbeType::from(x.type.original);
+        self.args.map(fn: {
+            ty := QbeType::from(it.type.original);
             name := x.name.encoded;
 
             return "{} %{}".format(ty, name);

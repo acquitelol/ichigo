@@ -11,7 +11,7 @@ struct QbeData {
 
 fn QbeData::__fmt__(QbeData self, i32 nesting) {
     items := self.items
-        .map(fn(x) "{} {}".format(x.x, x.y))
+        .map(fn: "{} {}".format(it.x, it.y))
         .join(", ");
 
     return "export data ${} = {{ {} }".format(self.name, items);

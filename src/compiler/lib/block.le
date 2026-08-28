@@ -14,7 +14,7 @@ fn QbeBlock::__fmt__(QbeBlock self, i32 nesting) {
     res.extend("@{}\n".format(self.label));
 
     res.extend("{}".format(self.statements
-        .map(fn(x) "\t{}".format(x))
+        .map(fn: "\t{}".format(it))
         .join("\n")));
 
     return res;

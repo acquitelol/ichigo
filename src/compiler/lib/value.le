@@ -30,7 +30,7 @@ fn Temporary::__fmt__(Temporary self, i32 nesting) {
 }
 
 fn Global::__fmt__(Global self, i32 nesting) {
-    quote := self.inner.iter().any(fn(x) x < 0) ? "\"" : "";
+    quote := self.inner.iter().any(fn: it < 0) ? "\"" : "";
     return "${}{}{}".format(quote, self.inner, quote);
 }
 

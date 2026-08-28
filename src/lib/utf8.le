@@ -42,8 +42,8 @@ fn string::utf8_decode(string self) -> rune {
 }
 
 fn rune::get_jp_digit(rune self) {
-    return jp_digits.iter().position_with(fn(x, c) x == c, self)
-        .map(fn(x) #cast(i64, x)).unwrap_or(-1);
+    return jp_digits.iter().position_with(fn: x0 == x1, self)
+        .map(fn: #cast(i64, it)).unwrap_or(-1);
 }
 
 fn rune::get_jp_unit(rune self) {
@@ -77,7 +77,7 @@ fn rune::encode(rune self) -> string {
 }
 
 fn Array::utf8_encode(rune[] self) {
-    return self.map(fn(x) rune::encode(x)).join("");
+    return self.map(fn: rune::encode(it)).join("");
 }
 
 fn rune::is_letter(rune self) {

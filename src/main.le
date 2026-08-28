@@ -17,21 +17,21 @@ fn main(string[] args) {
 
     tokens := Lexer::new(file, input).iter().collect();
 
-    if args.get(0).is_some_and(fn(x) x == "--tokens") {
+    if args.get(0).is_some_and(fn: it == "--tokens") {
         $dbg(tokens);
         return;
     }
 
     tree := Parser::new(tokens).parse();
 
-    if args.get(0).is_some_and(fn(x) x == "--ast") {
+    if args.get(0).is_some_and(fn: it == "--ast") {
         $dbg(tree);
         return;
     }
 
     module := Compiler::new(tree).compile();
 
-    if args.get(0).is_some_and(fn(x) x == "--ssa") {
+    if args.get(0).is_some_and(fn: it == "--ssa") {
         // Printing without dbg so it can be piped into a file. The others
         // are not independently valid source code so `$dbg` can be used.
         $println(module);

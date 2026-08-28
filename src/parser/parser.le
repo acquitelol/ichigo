@@ -222,8 +222,8 @@ fn Parser::parse_expr(Parser *self) -> AstNode {
         }
 
         if self.is_eof() || self.next_token().is_some_and(
-            fn(x) x.value == TokenValue::String("。")
-                || x.value == TokenValue::String("『")
+            fn: it.value == TokenValue::String("。")
+                || it.value == TokenValue::String("『")
         ) {
             break;
         }
