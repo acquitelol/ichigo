@@ -22,7 +22,7 @@ fn QbeFunction::__fmt__(QbeFunction self, i32 nesting) {
         quote,
         self.args.map(fn: {
             ty := QbeType::from(it.type.original);
-            name := x.name.encoded;
+            name := it.name.encoded;
 
             return "{} %{}".format(ty, name);
         }).join(", ")
