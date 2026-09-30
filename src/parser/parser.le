@@ -207,12 +207,12 @@ fn Parser::parse_expr(Parser *self) -> AstNode {
 
         if token.kind == TokenKind::Operator {
             if ops.is_empty()
-                || ops.peek().unwrap().precedence() < token.precedence() {
+                || ops.peek()!.precedence() < token.precedence() {
                 ops.push(token);
             } else {
                 while !ops.is_empty()
-                    && ops.peek().unwrap().precedence() >= token.precedence() {
-                    res.push_back(Err<AstNode>(ops.pop().unwrap()));
+                    && ops.peek()!.precedence() >= token.precedence() {
+                    res.push_back(Err<AstNode>(ops.pop()!));
                 }
 
                 ops.push(token);
@@ -232,13 +232,13 @@ fn Parser::parse_expr(Parser *self) -> AstNode {
     }
 
     while !ops.is_empty() {
-        res.push_back(Err<AstNode>(ops.pop().unwrap()));
+        res.push_back(Err<AstNode>(ops.pop()!));
     }
 
     out := Stack::new<AstNode>();
 
     while !res.is_empty() {
-        if _, lit, op := res.pop_front().unwrap() {
+        if _, lit, op := res.pop_front()! {
             out.push(lit);
         } else {
             rhs := out.pop().expect("間違った後置記法");
@@ -247,7 +247,7 @@ fn Parser::parse_expr(Parser *self) -> AstNode {
         }
     }
 
-    return out.pop().unwrap();
+    return out.pop()!;
 }
 
 fn Parser::parse_if(Parser *self) {

@@ -46,9 +46,9 @@ fn QbeFunction::new(ObjectString name, Argument[] args, QbeType return_type) {
 }
 
 fn QbeFunction::add_instruction(QbeFunction *self, QbeInstr instr) {
-    self.blocks.last().unwrap().add_instruction(instr);
+    self.blocks.last()!.add_instruction(instr);
 }
 
 fn QbeFunction::jumps(QbeFunction *self) {
-    return self.blocks.last().unwrap().jumps();
+    return self.blocks.last()!.jumps();
 }

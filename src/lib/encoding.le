@@ -12,7 +12,7 @@ fn string::to_hex_bytes(string input) {
     res := "";
 
     for c in input {
-        char[2] tmp;
+        tmp: char[2];
         io::sprintf(tmp, "%hhX", #cast(u8, c));
         res.extend(tmp);
     }
